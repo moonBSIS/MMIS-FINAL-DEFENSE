@@ -1320,7 +1320,14 @@ def rchuViewPrediction(prediction_id):
     # Calculate child’s age in months and determine the risk level for meal plan generation
     child_age_in_months = prediction.age
     risk_level = prediction.prediction_result
-    meal_plan = generate_meal_plan(child_age_in_months, risk_level)
+
+    # Access malnutrition metrics from PredictionData model
+    height_status = prediction.height_status if prediction else None
+    weight_status = prediction.weight_status if prediction else None
+    weight_length_status = prediction.weight_length_status if prediction else None
+
+    # Generate the meal plan
+    meal_plan = generate_meal_plan(child_age_in_months, risk_level, height_status, weight_length_status)
 
     # Render a dedicated template for viewing a single prediction
     return render_template(
@@ -1524,11 +1531,21 @@ def userViewResults(prediction_id):
 
     # Fetch household data associated with the prediction
     household = Household.query.get(prediction.household_id)
-    
-    # Generate meal plan based on child's age and risk level
+
+    # Fetch the child associated with the prediction (if any)
+    child = Child.query.get(prediction.child_id) if prediction.child_id else None
+
+    # Fetch child’s age from PredictionData and the risk level
     child_age_in_months = prediction.age
     risk_level = prediction.prediction_result
-    meal_plan = generate_meal_plan(child_age_in_months, risk_level)
+
+    # Access malnutrition metrics from PredictionData model
+    height_status = prediction.height_status if prediction else None
+    weight_status = prediction.weight_status if prediction else None
+    weight_length_status = prediction.weight_length_status if prediction else None
+
+    # Generate the meal plan with necessary data
+    meal_plan = generate_meal_plan(child_age_in_months, risk_level, height_status, weight_length_status)
 
     # Render the results template with prediction, household, and meal plan data
     return render_template(
@@ -1539,7 +1556,6 @@ def userViewResults(prediction_id):
     )
 
 
-from datetime import date
 
 @app.route('/user/view_profile', methods=['GET'])
 def viewProfile():
@@ -1841,11 +1857,12 @@ def adminViewResultsButton(prediction_id):
     child_age_in_months = prediction.age
     risk_level = prediction.prediction_result
 
-    # Assuming 'child' contains height_status and weight_length_status fields
-    height_status = child.height_status if child else None
-    weight_length_status = child.weight_length_status if child else None
+    # Access malnutrition metrics from PredictionData model
+    height_status = prediction.height_status if prediction else None
+    weight_status = prediction.weight_status if prediction else None
+    weight_length_status = prediction.weight_length_status if prediction else None
 
-    # Generate meal plan with all required arguments
+    # Generate meal plan
     meal_plan = generate_meal_plan(child_age_in_months, risk_level, height_status, weight_length_status)
 
     return render_template(
