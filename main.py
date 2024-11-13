@@ -962,14 +962,24 @@ def view_all_children():
         flash("Admin login required.", "danger")
         return redirect(url_for('adminIndex'))
 
-    # Retrieve all children and their households without filtering by user
+    # Retrieve the admin and its barangay
+    admin = Admin.query.get(admin_id)
+    if not admin or not admin.barangay:
+        flash("Admin account or barangay information is missing. Please contact support.", "danger")
+        return redirect(url_for('adminDashboard'))
+
+    # Get the barangay ID of the admin
+    barangay_id = admin.barangay.id
+
+    # Retrieve children and households filtered by the admin's barangay
     children_with_households = (
         db.session.query(Child, Household)
         .join(Household, Household.user_id == Child.user_id)
+        .filter(Household.barangay_id == barangay_id)  # Filter by barangay_id
         .all()
     )
 
-    # Retrieve the latest prediction for each child
+    # Retrieve the latest prediction for each child within the filtered barangay
     latest_predictions = {
         child.id: PredictionData.query
             .filter_by(child_id=child.id)
@@ -986,6 +996,7 @@ def view_all_children():
         user=None,  # Not tied to a specific user
         children=[child for child, _ in children_with_households]
     )
+
 
 
 # Admin logout
