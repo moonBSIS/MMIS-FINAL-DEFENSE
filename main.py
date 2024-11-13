@@ -1133,11 +1133,17 @@ def create_rchu_account():
         # Create a new RCHU object and save it to the database
         new_rchu = RCHU(username=username)
         new_rchu.set_password(password)  # Assuming RCHU has set_password method for hashing
-        db.session.add(new_rchu)
-        db.session.commit()
-        
-        flash('RCHU account created successfully!', 'success')
-        return redirect(url_for('manage_rchu'))
+        try:
+            db.session.add(new_rchu)
+            db.session.commit()
+            flash('RCHU account created successfully!', 'success')
+            return redirect(url_for('manage_rchu'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error creating RCHU account: {e}", 'danger')
+    else:
+        # Add debugging output to check for errors if form does not validate
+        print("Form validation errors:", form.errors)
 
     return render_template('rchu/create_rchu.html', form=form)
 
@@ -1172,7 +1178,6 @@ def update_rchu(id):
         return redirect(url_for('manage_rchu'))
 
     return render_template('rchu/update_rchu.html', form=form, rchu=rchu)
-
 
 # Delete an RCHU account
 @app.route('/rchu/manage-rchu/delete/<int:id>', methods=['POST'])
