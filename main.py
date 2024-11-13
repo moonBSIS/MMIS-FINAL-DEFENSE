@@ -1167,15 +1167,24 @@ def update_rchu(id):
     form = UpdateRCHUForm(obj=rchu)
 
     if form.validate_on_submit():
+        # Update RCHU username and password if provided
         rchu.username = form.username.data
-
-        # Update password only if a new one is provided
         if form.password.data:
             rchu.set_password(form.password.data)
 
-        db.session.commit()
-        flash('RCHU account updated successfully!', 'success')
-        return redirect(url_for('manage_rchu'))
+        try:
+            db.session.commit()
+            flash('RCHU account updated successfully!', 'success')
+            return redirect(url_for('manage_rchu'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"An error occurred: {e}", 'danger')
+            print(f"Database commit error: {e}")
+
+    else:
+        # Print errors if form validation fails
+        if form.errors:
+            print("Form validation errors:", form.errors)
 
     return render_template('rchu/update_rchu.html', form=form, rchu=rchu)
 
