@@ -18,7 +18,6 @@ import joblib
 
 app = Flask(__name__, static_folder='static')
 
-
 app.config['SECRET_KEY'] = '4046bde895cc19ca9cbd373a'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SESSION_PERMANENT'] = False
