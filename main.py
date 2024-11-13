@@ -1274,7 +1274,7 @@ def rchuUpdateBHW(id):
 def rchuDeleteBHW(bhw_id):
     if 'rchu_id' not in session:
         flash('You are not logged in or do not have the required permissions.', 'danger')
-        return redirect(url_for('rchuIndex'))
+        return redirect(url_for('rchuLogin'))
     
     bhw = Admin.query.get_or_404(bhw_id)  
     db.session.delete(bhw)
@@ -1288,7 +1288,7 @@ def rchuDeleteBHW(bhw_id):
 def rchuViewAllPredictions():
     if 'rchu_id' not in session:
         flash('You are not logged in or do not have the required permissions.', 'danger')
-        return redirect(url_for('rchuIndex'))
+        return redirect(url_for('rchuLogin'))
 
     # Query all prediction data, ordered by barangay name
     predictions = db.session.query(
@@ -1317,7 +1317,7 @@ def rchuViewPrediction(prediction_id):
     # Check if the user has RCHU-level access
     if not session.get('rchu_id'):
         flash('You are not logged in or do not have the required permissions.', 'danger')
-        return redirect(url_for('rchuIndex'))
+        return redirect(url_for('rchuLogin'))
 
     # Fetch the prediction data
     prediction = PredictionData.query.get(prediction_id)
