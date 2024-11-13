@@ -192,6 +192,7 @@ class PredictionData(db.Model):
     number_of_children_under_five = db.Column(db.Integer, nullable=False)
     household_size = db.Column(db.Integer, nullable=False)
     mothers_working_status = db.Column(db.String(50), nullable=False)
+    wealth_quantile = db.Column(db.String(20), nullable=False) 
     prediction_result = db.Column(db.String(255), nullable=False)
 
     user = db.relationship("User", back_populates="predictions")
@@ -203,6 +204,7 @@ class PredictionData(db.Model):
 
 
 
+
 class PredictionForm(FlaskForm):
     child_first_name = StringField("Child's First Name", validators=[DataRequired()])
     child_last_name = StringField("Child's Last Name", validators=[DataRequired()])
@@ -210,23 +212,54 @@ class PredictionForm(FlaskForm):
     sex = SelectField('Sex', choices=[('M', 'Male'), ('F', 'Female')], validators=[DataRequired()])
     vitamin_a = SelectField('Vitamin A', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])
     birth_order = IntegerField('Birth Order', validators=[DataRequired()])
-    breastfeeding = SelectField('Breastfeeding', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])
+    breastfeeding = SelectField('Breastfeeding', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])  # Only Yes/No choices
     comorbidity_status = SelectField('Comorbidity Status', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])
     type_of_birth = SelectField('Type of Birth', choices=[('Singleton', 'Singleton'), ('Multiple', 'Multiple')], validators=[DataRequired()])
-    size_at_birth = SelectField('Size at Birth', choices=[('Smaller than average', 'Smaller than average'), ('Average', 'Average'), ('Larger than average', 'Larger than average')], validators=[DataRequired()])
-    dietary_diversity_score = SelectField('Dietary Diversity Score', choices=[('Below minimum requirement', 'Below minimum requirement'), ('Minimum Requirement', 'Minimum Requirement'), ('Maximum Requirement', 'Maximum Requirement')], validators=[DataRequired()])
+    size_at_birth = SelectField('Size at Birth', choices=[
+        ('Smaller than average', 'Smaller than average'),
+        ('Average', 'Average'),
+        ('Larger than average', 'Larger than average')
+    ], validators=[DataRequired()])
+    dietary_diversity_score = SelectField('Dietary Diversity Score', choices=[
+        ('Below Minimum', 'Below Minimum'),
+        ('Minimum', 'Minimum Requirement'),
+        ('Above Minimum', 'Maximum Requirement')
+    ], validators=[DataRequired()])
     mothers_age = IntegerField("Mother's Age", validators=[DataRequired()])
-    residence = SelectField('Residence', choices=[('Rural', 'Rural'), ('Urban', 'Urban')], validators=[DataRequired()])
-    mothers_education_level = SelectField("Mother's Education Level", choices=[('Elementary', 'Elementary'), ('Highschool', 'Highschool'), ('College', 'College')], validators=[DataRequired()])
-    fathers_education_level = SelectField("Father's Education Level", choices=[('Elementary', 'Elementary'), ('Highschool', 'Highschool'), ('College', 'College')], validators=[DataRequired()])
-    womens_autonomy_tertiles = SelectField("Women's Autonomy Tertiles", choices=[('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High')], validators=[DataRequired()])
-    toilet_facility = SelectField("Toilet Facility", choices=[('Improved', 'Improved'), ('Unimproved', 'Unimproved')], validators=[DataRequired()])
-    source_of_drinking_water = SelectField("Source of Drinking Water", choices=[('Improved', 'Improved'), ('Unimproved', 'Unimproved')], validators=[DataRequired()])
-    bmi_of_mother = SelectField("BMI of Mother", choices=[('Underweight', 'Underweight'), ('Normal', 'Normal'), ('Overweight', 'Overweight'), ('Obese', 'Obese')], validators=[DataRequired()])
+    mothers_education_level = SelectField("Mother's Education Level", choices=[
+        ('No Proper Education', 'No Proper Education'),
+        ('Elementary', 'Elementary'), ('Highschool', 'Highschool'), ('College', 'College')
+    ], validators=[DataRequired()])
+    fathers_education_level = SelectField("Father's Education Level", choices=[
+        ('No Proper Education', 'No Proper Education'),
+        ('Elementary', 'Elementary'), ('Highschool', 'Highschool'), ('College', 'College')
+    ], validators=[DataRequired()])
+    womens_autonomy_tertiles = SelectField("Women's Autonomy Tertiles", choices=[
+        ('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High')
+    ], validators=[DataRequired()])
+    toilet_facility = SelectField("Toilet Facility", choices=[
+        ('Unimproved', 'Unimproved'), ('Improved', 'Improved')
+    ], validators=[DataRequired()])
+    source_of_drinking_water = SelectField("Source of Drinking Water", choices=[
+        ('Clean', 'Clean'), ('Contaminated', 'Contaminated'), ('Untested', 'Untested')
+    ], validators=[DataRequired()])
+    bmi_of_mother = SelectField("BMI of Mother", choices=[
+        ('Underweight', 'Underweight'), ('Normal', 'Normal'), ('Overweight', 'Overweight'), ('Obese', 'Obese')
+    ], validators=[DataRequired()])
     number_of_children_under_five = IntegerField("Number of Children Under Five", validators=[DataRequired()])
-    mothers_working_status = SelectField("Mother's Working Status", choices=[('Working', 'Working'), ('Not Working', 'Not Working')], validators=[DataRequired()])
+    mothers_working_status = SelectField("Mother's Working Status", choices=[
+        ('Working', 'Working'), ('Not Working', 'Not Working')
+    ], validators=[DataRequired()])
     household_size = IntegerField("Household Size", validators=[DataRequired()])
+    wealth_quantile = SelectField("Wealth Quantile", choices=[
+        ('Poor', 'Poor'), ('Low Income', 'Low Income'), ('Low Middle Income', 'Low Middle Income'),
+        ('Middle Income', 'Middle Income'), ('Upper Middle Income', 'Upper Middle Income'),
+        ('Upper Income', 'Upper Income'), ('Rich', 'Rich')
+    ], validators=[DataRequired()])
+
+    residence = SelectField('Residence', choices=[('Rural', 'Rural'), ('Urban', 'Urban')], validators=[DataRequired()])
     submit = SubmitField('Submit')
+
 
 
 class NewUserForm(FlaskForm):
@@ -922,6 +955,40 @@ def delete_child_and_predictions(child_id):
         return jsonify({"message": f"Error deleting child and predictions: {e}"}), 500
 
 
+@app.route('/viewAllChildren', methods=['GET'])
+def view_all_children():
+    # Ensure the admin is logged in
+    admin_id = session.get('admin_id')
+    if not admin_id:
+        flash("Admin login required.", "danger")
+        return redirect(url_for('adminIndex'))
+
+    # Retrieve all children and their households without filtering by user
+    children_with_households = (
+        db.session.query(Child, Household)
+        .join(Household, Household.user_id == Child.user_id)
+        .all()
+    )
+
+    # Retrieve the latest prediction for each child
+    latest_predictions = {
+        child.id: PredictionData.query
+            .filter_by(child_id=child.id)
+            .order_by(PredictionData.prediction_date.desc())
+            .first()
+        for child, _ in children_with_households
+    }
+
+    # Pass data to the template
+    return render_template(
+        'admin/view_all_child.html',
+        children_with_households=children_with_households,
+        latest_predictions=latest_predictions,
+        user=None,  # Not tied to a specific user
+        children=[child for child, _ in children_with_households]
+    )
+
+
 # Admin logout
 @app.route('/admin/logout')
 def adminLogout():
@@ -1556,16 +1623,17 @@ def adminPredict():
         flash("Child ID is missing or invalid.", "danger")
         return redirect(url_for('bhw_manage_child'))
 
+    # Retrieve child and household information
     child = Child.query.get(child_id)
     household = Household.query.filter_by(user_id=child.user_id).first()
     barangay_id = household.barangay_id if household else None
 
+    # Get the latest prediction for pre-filling the form if updating
     latest_prediction = PredictionData.query.filter_by(child_id=child_id).order_by(PredictionData.prediction_date.desc()).first()
     form = PredictionForm()
 
-    # Pre-fill form with latest prediction data if `is_update` is True
+    # Pre-fill form with data if updating and a prediction exists
     if latest_prediction and is_update:
-        # Convert months to birthdate for the form
         form.age.data = date.today().replace(
             year=date.today().year - (latest_prediction.age // 12),
             month=(date.today().month - (latest_prediction.age % 12) + 12) % 12 or 12
@@ -1588,94 +1656,109 @@ def adminPredict():
         form.number_of_children_under_five.data = latest_prediction.number_of_children_under_five
         form.household_size.data = latest_prediction.household_size
         form.mothers_working_status.data = latest_prediction.mothers_working_status
+        form.wealth_quantile.data = latest_prediction.wealth_quantile
 
-    # Calculate age in months upon form submission
+    # Process form submission
     if form.validate_on_submit():
-        age = form.age.data
-
-        # Calculate age in months based on birthdate
         today = date.today()
-        age_in_months = (today.year - age.year) * 12 + today.month - age.month
-        if today.day < age.day:
+        age_in_months = (today.year - form.age.data.year) * 12 + today.month - form.age.data.month
+        if today.day < form.age.data.day:
             age_in_months -= 1
 
+        # Define mappings for input categorical data
+        breastfeeding_mapping = {'Yes': '1', 'No': '0'} 
+        size_at_birth_mapping = {'Smaller than average': '0', 'Average': '1', 'Larger than Average': '2'}
+        dietary_diversity_score_mapping = {'Below Minimum': '0', 'Minimum': '1', 'Above Minimum': '2'}
+        education_level_mapping = {
+            'No Proper Education': '0',
+            'Elementary': '1',
+            'Highschool': '2', 
+            'College': '3'
+        }
+        water_quality_mapping = {'Clean': '0', 'Contaminated': '1', 'Untested': '2'}
+        bmi_of_mother_mapping = {'Underweight': '0', 'Normal': '1', 'Overweight': '2', 'Obese': '3'}
+        wealth_quantile_mapping = {'Poor': '0', 'Low Income': '1', 'Low Middle Income': '2', 'Middle Income': '3', 'Upper Middle Income': '4', 'Upper Income': '5', 'Rich': '6'}
+
         try:
-            # Prepare the data for model prediction
-            data = np.array([[ 
-                age_in_months,  # Use age_in_months instead of form.age.data
-                1 if form.sex.data == 'M' else 0,  # Sex
-                1 if form.vitamin_a.data == 'Yes' else 0,  # Vitamin A
-                form.birth_order.data,  # Birth Order
-                1 if form.breastfeeding.data == 'Yes' else 0,  # Breastfeeding
-                1 if form.comorbidity_status.data == 'Yes' else 0,  # Comorbidity Status
-                1 if form.type_of_birth.data == 'Singleton' else 0,  # Type of Birth
-                {'Smaller than average': 0, 'Average': 1, 'Larger than average': 2}[form.size_at_birth.data],  # Size at Birth
-                {'Below minimum requirement': 0, 'Minimum Requirement': 1, 'Maximum Requirement': 2}[form.dietary_diversity_score.data],  # Dietary Diversity Score
-                form.mothers_age.data,  # Mother's Age
-                {'Elementary': 0, 'Highschool': 1, 'College': 2}[form.mothers_education_level.data],  # Mother's Education
-                {'Elementary': 0, 'Highschool': 1, 'College': 2}[form.fathers_education_level.data],  # Father's Education
-                {'Low': 0, 'Medium': 1, 'High': 2}[form.womens_autonomy_tertiles.data],  # Women's Autonomy Tertiles
-                1 if form.toilet_facility.data == 'Improved' else 0,  # Toilet Facility
-                1 if form.source_of_drinking_water.data == 'Improved' else 0,  # Source of Drinking Water
-                {'Underweight': 0, 'Normal': 1, 'Overweight': 2, 'Obese': 3}[form.bmi_of_mother.data],  # BMI of Mother
-                form.number_of_children_under_five.data,  # Number of Children Under Five
-                form.household_size.data,  # Household Size
-                1 if form.mothers_working_status.data == 'Working' else 0  # Mother's Working Status
+            # Prepare model input data
+            data = np.array([[
+                bmi_of_mother_mapping[form.bmi_of_mother.data],
+                1 if form.mothers_working_status.data == 'Working' else 0,
+                breastfeeding_mapping[form.breastfeeding.data],  # Using simplified breastfeeding mapping
+                1 if form.vitamin_a.data == 'Yes' else 0,
+                1 if form.sex.data == 'M' else 0,
+                1 if form.comorbidity_status.data == 'Yes' else 0,
+                form.household_size.data,
+                1 if form.type_of_birth.data == 'Singleton' else 0,
+                size_at_birth_mapping[form.size_at_birth.data],
+                dietary_diversity_score_mapping[form.dietary_diversity_score.data],
+                age_in_months,
+                form.mothers_age.data,
+                form.birth_order.data,
+                form.number_of_children_under_five.data,
+                education_level_mapping[form.mothers_education_level.data],
+                education_level_mapping[form.fathers_education_level.data],
+                {'Low': '0', 'Medium': '1', 'High': '2'}[form.womens_autonomy_tertiles.data],
+                1 if form.toilet_facility.data == 'Improved' else 0,
+                water_quality_mapping[form.source_of_drinking_water.data],
+                wealth_quantile_mapping[form.wealth_quantile.data]
             ]])
 
-            # Debugging line to ensure data is correct
-            print("Prediction input data:", data)
+            # Debugging line to verify data preparation
+            print("Prepared prediction data:", data)
 
+            # Perform the prediction
             predictions = model.predict(data)
             weight_for_age, height_for_age, weight_for_length_height = predictions[0]
+            print("Raw predictions output:", predictions)
 
-            # Mapping prediction results
+            # Define mappings for output categories to readable labels
             status_map = {
-                'Weight for Age': {0: 'Normal', 1: 'Overweight', 2: 'Underweight', 3: 'Severely Underweight'},
-                'Height for Age': {0: 'Normal', 1: 'Stunted', 2: 'Tall', 3: 'Severely Stunted'},
-                'Weight for Length/Height': {0: 'Normal', 1: 'Wasted', 2: 'Severely Wasted', 3: 'Overweight', 4: 'Obese'}
+                'Weight for Age': {'0': 'Normal', '1': 'Underweight', '2': 'Overweight', '3': 'Severely Underweight'},
+                'Height for Age': {'0': 'Normal', '1': 'Severely Stunted', '2': 'Stunted', '3': 'Tall'},
+                'Weight for Length/Height': {'0': 'Normal', '1': 'Wasted', '2': 'Severely Wasted', '3': 'Overweight', '4': 'Obese'}
             }
 
-            weight_status = status_map['Weight for Age'].get(weight_for_age, "Unknown")
-            height_status = status_map['Height for Age'].get(height_for_age, "Unknown")
-            weight_length_status = status_map['Weight for Length/Height'].get(weight_for_length_height, "Unknown")
-            
-            prediction_result = f"Weight for Age: {weight_status}<br>Height for Age: {height_status}<br>Weight for Length/Height: {weight_length_status}"
+            weight_status = status_map['Weight for Age'][str(weight_for_age)]
+            height_status = status_map['Height for Age'][str(height_for_age)]
+            weight_length_status = status_map['Weight for Length/Height'][str(weight_for_length_height)]
+            print("Mapped statuses:", weight_status, height_status, weight_length_status)
 
             # Create a new prediction entry in the database
             new_prediction = PredictionData(
-            child_id=child.id,
-            child_first_name=child.first_name,
-            child_last_name=child.last_name,
-            age=age_in_months,
-            sex=form.sex.data,
-            vitamin_a=form.vitamin_a.data,
-            birth_order=form.birth_order.data,
-            breastfeeding=form.breastfeeding.data,
-            comorbidity_status=form.comorbidity_status.data,
-            type_of_birth=form.type_of_birth.data,
-            size_at_birth=form.size_at_birth.data,
-            dietary_diversity_score=form.dietary_diversity_score.data,
-            mothers_age=form.mothers_age.data,
-            mothers_education_level=form.mothers_education_level.data,
-            fathers_education_level=form.fathers_education_level.data,
-            womens_autonomy_tertiles=form.womens_autonomy_tertiles.data,
-            toilet_facility=form.toilet_facility.data,
-            source_of_drinking_water=form.source_of_drinking_water.data,
-            bmi_of_mother=form.bmi_of_mother.data,
-            number_of_children_under_five=form.number_of_children_under_five.data,
-            household_size=form.household_size.data,
-            mothers_working_status=form.mothers_working_status.data,
-            prediction_result=prediction_result,
-            weight_status=weight_status,
-            height_status=height_status,
-            weight_length_status=weight_length_status,
-            prediction_date=datetime.now(),
-            parent_id=child.user_id,
-            household_id=household.id if household else None,
-            admin_id=admin_id,
-            barangay_id=barangay_id
-        )
+                child_id=child.id,
+                child_first_name=child.first_name,
+                child_last_name=child.last_name,
+                age=age_in_months,
+                sex=form.sex.data,
+                vitamin_a=form.vitamin_a.data,
+                birth_order=form.birth_order.data,
+                breastfeeding=form.breastfeeding.data,
+                comorbidity_status=form.comorbidity_status.data,
+                type_of_birth=form.type_of_birth.data,
+                size_at_birth=form.size_at_birth.data,
+                dietary_diversity_score=form.dietary_diversity_score.data,
+                mothers_age=form.mothers_age.data,
+                mothers_education_level=form.mothers_education_level.data,
+                fathers_education_level=form.fathers_education_level.data,
+                womens_autonomy_tertiles=form.womens_autonomy_tertiles.data,
+                toilet_facility=form.toilet_facility.data,
+                source_of_drinking_water=form.source_of_drinking_water.data,
+                bmi_of_mother=form.bmi_of_mother.data,
+                number_of_children_under_five=form.number_of_children_under_five.data,
+                household_size=form.household_size.data,
+                mothers_working_status=form.mothers_working_status.data,
+                wealth_quantile=form.wealth_quantile.data,
+                prediction_result=f"Weight for Age: {weight_status}<br>Height for Age: {height_status}<br>Weight for Length/Height: {weight_length_status}",
+                weight_status=weight_status,
+                height_status=height_status,
+                weight_length_status=weight_length_status,
+                prediction_date=datetime.now(),
+                parent_id=child.user_id,
+                household_id=household.id if household else None,
+                admin_id=admin_id,
+                barangay_id=barangay_id
+            )
 
             # Save the new prediction to the database
             db.session.add(new_prediction)
@@ -1685,14 +1768,15 @@ def adminPredict():
 
         except IntegrityError as ie:
             db.session.rollback()
-            flash('A database error occurred.', 'warning')
-            app.logger.warning(f"IntegrityError: {ie}")
+            flash('A database error occurred.', 'danger')
+            print("IntegrityError:", ie)
+
         except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Prediction error: {e}")
-            flash(f'Error during prediction: {e}', 'danger')
+            flash('An error occurred during prediction.', 'danger')
+            print("Exception:", e)
 
     return render_template('admin/predict.html', form=form, child=child, household=household, is_update=is_update)
+
 
 # Admin Results
 @app.route('/admin/results/<int:prediction_id>')
@@ -1714,7 +1798,17 @@ def adminResults(prediction_id):
     user_id = child.user_id if child else None  # Get the user/parent ID if child exists
 
     # Generate a meal plan based on the child's age and risk level
-    meal_plan = generate_meal_plan(prediction.age, prediction.prediction_result)
+    try:
+        meal_plan = generate_meal_plan(
+            age_in_months=prediction.age,
+            weight_status=prediction.weight_status,
+            height_status=prediction.height_status,
+            weight_length_status=prediction.weight_length_status
+        )
+    except Exception as e:
+        flash("An error occurred while generating the meal plan.", "danger")
+        print("Exception:", e)
+        meal_plan = None
 
     # Render the results.html template with the fetched data and user_id/child_id
     return render_template(
@@ -1726,6 +1820,7 @@ def adminResults(prediction_id):
         user_id=user_id,
         child_id=child.id if child else None
     )
+
 
 @app.route('/admin/viewResults/<int:prediction_id>')
 def adminViewResultsButton(prediction_id):

@@ -116,7 +116,7 @@
             </td>
             <td>{{ prediction.age }}</td>
             <td>{{ prediction.sex }}</td>
-            <td>{{ prediction.prediction_result }}</td>
+            <td>{{ prediction.prediction_result|safe }}</td>
             <td>
               <a
                 href="{{ url_for('userViewResults', prediction_id=prediction.id) }}"

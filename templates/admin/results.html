@@ -120,13 +120,15 @@
         <tr>
           <td>Mother's Name:</td>
           <td>
-            {{ household.mother_first_name }} {{ household.mother_last_name }}
+            {{ household.mother_first_name if household else 'N/A' }} {{
+            household.mother_last_name if household else '' }}
           </td>
         </tr>
         <tr>
           <td>Father's Name:</td>
           <td>
-            {{ household.father_first_name }} {{ household.father_last_name }}
+            {{ household.father_first_name if household else 'N/A' }} {{
+            household.father_last_name if household else '' }}
           </td>
         </tr>
         {% endif %}
@@ -197,6 +199,10 @@
         <tr>
           <td>Household Size:</td>
           <td>{{ prediction.household_size }}</td>
+        </tr>
+        <tr>
+          <td>Wealth Quantile</td>
+          <td>{{ prediction.wealth_quantile }}</td>
         </tr>
       </table>
 
