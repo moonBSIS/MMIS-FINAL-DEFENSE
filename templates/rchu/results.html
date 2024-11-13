@@ -109,7 +109,7 @@
       <table class="result-table">
         <tr>
           <td>Risk Level:</td>
-          <td>{{ prediction.prediction_result }}</td>
+          <td>{{ prediction.prediction_result|safe }}</td>
         </tr>
         <tr>
           <td>Child's Name:</td>
