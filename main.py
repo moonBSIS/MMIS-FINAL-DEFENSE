@@ -1424,7 +1424,8 @@ def download_predictions(barangay_id):
         PredictionData.bmi_of_mother,
         PredictionData.number_of_children_under_five,
         PredictionData.mothers_working_status,
-        PredictionData.household_size
+        PredictionData.household_size,
+        PredictionData.wealth_quantile 
     ).join(Household, PredictionData.household_id == Household.id)\
      .join(Barangay, PredictionData.barangay_id == Barangay.id)
     
@@ -1447,7 +1448,7 @@ def download_predictions(barangay_id):
         'Type of Birth', 'Size at Birth', 'Dietary Diversity Score', "Mother's Age", 
         "Mother's Education Level", "Father's Education Level", "Women's Autonomy Tertiles", 
         'Toilet Facility', 'Source of Drinking Water', "BMI of Mother", 
-        "Number of Children Under Five", "Mother's Working Status", 'Household Size'
+        "Number of Children Under Five", "Mother's Working Status", 'Household Size', 'Wealth Quantile'
     ])
 
     # Write each prediction row with unified name fields
@@ -1466,7 +1467,7 @@ def download_predictions(barangay_id):
             pred.dietary_diversity_score, pred.mothers_age, pred.mothers_education_level,
             pred.fathers_education_level, pred.womens_autonomy_tertiles, pred.toilet_facility,
             pred.source_of_drinking_water, pred.bmi_of_mother, pred.number_of_children_under_five,
-            pred.mothers_working_status, pred.household_size
+            pred.mothers_working_status, pred.household_size, pred.wealth_quantile 
         ])
 
     # Set up the CSV response
