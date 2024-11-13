@@ -1505,15 +1505,21 @@ def userDashboard():
         return redirect('/user/')
 
     user_id = session.get('user_id')
-    user = User.query.filter_by(id=user_id).first()
+    user = User.query.get(user_id)
 
     # Fetch household related to the user
     household = Household.query.filter_by(user_id=user_id).first()
 
-    # Fetch predictions related to the user
-    predictions = PredictionData.query.filter_by(parent_id=user_id).all()
+    # Fetch the latest prediction for each child of the user
+    children = Child.query.filter_by(user_id=user_id).all()
+    latest_predictions = {
+        child.id: PredictionData.query
+            .filter_by(child_id=child.id)
+            .order_by(PredictionData.prediction_date.desc())
+            .first()
+        for child in children
+    }
 
-    # Use `user.barangay.name` directly instead of `str()` or `repr()`
     barangay_name = user.barangay.name if user.barangay else "Unknown Barangay"
 
     return render_template(
@@ -1522,8 +1528,10 @@ def userDashboard():
         user=user,
         household=household,
         barangay_name=barangay_name,
-        predictions=predictions
+        latest_predictions=latest_predictions,
+        children=children
     )
+
 
 
 @app.route('/user/results/<int:prediction_id>')
