@@ -1841,8 +1841,12 @@ def adminViewResultsButton(prediction_id):
     child_age_in_months = prediction.age
     risk_level = prediction.prediction_result
 
-    # Generate meal plan
-    meal_plan = generate_meal_plan(child_age_in_months, risk_level)
+    # Assuming 'child' contains height_status and weight_length_status fields
+    height_status = child.height_status if child else None
+    weight_length_status = child.weight_length_status if child else None
+
+    # Generate meal plan with all required arguments
+    meal_plan = generate_meal_plan(child_age_in_months, risk_level, height_status, weight_length_status)
 
     return render_template(
         'admin/results.html',
