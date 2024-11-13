@@ -97,7 +97,7 @@
       </p>
 
       <h2>Children List</h2>
-      {% if predictions %}
+      {% if children %}
       <table class="prediction-table">
         <thead>
           <tr>
@@ -109,36 +109,46 @@
           </tr>
         </thead>
         <tbody>
-          {% for prediction in predictions %}
+          {% for child in children %}
           <tr>
+            <td>{{ child.first_name }} {{ child.last_name }}</td>
             <td>
-              {{ prediction.child_first_name }} {{ prediction.child_last_name }}
+              {{ latest_predictions[child.id].age if
+              latest_predictions[child.id] else 'N/A' }}
             </td>
-            <td>{{ prediction.age }}</td>
-            <td>{{ prediction.sex }}</td>
-            <td>{{ prediction.prediction_result|safe }}</td>
             <td>
+              {{ latest_predictions[child.id].sex if
+              latest_predictions[child.id] else 'N/A' }}
+            </td>
+            <td>
+              {{ latest_predictions[child.id].prediction_result|safe if
+              latest_predictions[child.id] else 'N/A' }}
+            </td>
+            <td>
+              {% if latest_predictions[child.id] %}
               <a
-                href="{{ url_for('userViewResults', prediction_id=prediction.id) }}"
+                href="{{ url_for('userViewResults', prediction_id=latest_predictions[child.id].id) }}"
                 class="btn-download"
-                >View Results</a
               >
+                View Results
+              </a>
               <br />
               <a
-                href="{{ url_for('userResultsHistory', child_id=prediction.child_id) }}"
+                href="{{ url_for('userResultsHistory', child_id=child.id) }}"
                 class="btn-download"
-                >View History</a
               >
+                View History
+              </a>
+              {% else %}
+              <p>N/A</p>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
       {% else %}
-      <p>
-        No predictions available. Once predictions are made, they will appear
-        here.
-      </p>
+      <p>No children found. Please add children to view predictions.</p>
       {% endif %}
     </div>
 
